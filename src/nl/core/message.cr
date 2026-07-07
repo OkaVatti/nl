@@ -9,6 +9,9 @@ module Nl
   # This class handles allocation, header placement, attribute addition,
   # and provides helpers for building common request types.
   class Message
+    # Generic Netlink header length (cmd, version, reserved u16)
+    private GENL_HDRLEN = 4
+
     @ptr : Pointer(LibNL::NL_Msg)
     @owned : Bool
 
@@ -52,6 +55,22 @@ module Nl
     def put_header(port : UInt32, seq : UInt32, type : Int32, payload : Int32, flags : Int32) : Pointer(Void)
       hdr = LibNL.nlmsg_put(@ptr, port, seq, type, payload, flags)
       raise Error.new("Failed to put netlink header") if hdr.null?
+      hdr
+    end
+
+    # Puts a generic netlink header into the message.
+    #
+    # The family_id is used as the nlmsg_type. The genl header (cmd, version) is
+    # placed immediately after the netlink header.
+    def put_genl_header(family_id : UInt16, cmd : UInt8, version : UInt8 = 1, flags : Int32 = 0) : Pointer(Void)
+      hdr = LibNL.nlmsg_put(@ptr, 0_u32, 0_u32, family_id.to_i, GENL_HDRLEN, flags)
+      raise Error.new("Failed to put netlink header") if hdr.null?
+      # Fill the genl header (cmd, version, reserved)
+      genl_ptr = hdr + sizeof(LibNL::NlMsghdr)
+      genl = genl_ptr.as(Pointer(LibNLGenl::Genlmsghdr))
+      genl.value.cmd = cmd
+      genl.value.version = version
+      genl.value.reserved = 0_u16
       hdr
     end
 

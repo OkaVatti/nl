@@ -13,7 +13,9 @@ module Nl
     @ptr : Pointer(LibNL::NL_Sock)
 
     # Expose the raw pointer so that low‑level libnl functions can be used.
-    getter handle : Pointer(LibNL::NL_Sock)
+    def handle : Pointer(LibNL::NL_Sock)
+      @ptr
+    end
 
     # Creates a new Netlink socket.
     #

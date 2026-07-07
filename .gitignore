@@ -1,0 +1,13 @@
+# basic shit / default
+/docs/
+/lib/
+/bin/
+/.shards/
+*.dwarf
+
+# Libraries don't need dependency lock
+# Dependencies will be locked in applications that use them.
+# tbf tho no one should ever be pushing this file to their repo, 
+# as it's generated when installing dependencies. there is simply 
+# no need for it, outside of the local environment.
+/shard.lock

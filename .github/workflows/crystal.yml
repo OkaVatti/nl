@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [mother]
+  pull_request:
+    branches: [mother]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CRYSTAL_CACHE_VERSION: v1
+
+jobs:
+  test:
+    runs-on: ubuntu-latest # Netlink is Linux‑specific; macOS is not supported.
+
+    strategy:
+      fail-fast: false
+      matrix:
+        crystal:
+          - latest
+          - 1.20.3
+          - 1.20.2
+          - 1.20.1
+          - 1.19.2
+          - 1.18.2
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Crystal
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: ${{ matrix.crystal }}
+
+      - name: Install libnl development packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libnl-3-dev \
+            libnl-route-3-dev \
+            libnl-genl-3-dev \
+            libnl-nf-3-dev \
+            libnl-xfrm-3-dev
+
+      - name: Show versions
+        run: |
+          crystal --version
+          shards --version
+
+      - name: Cache shards
+        uses: actions/cache@v4
+        with:
+          path: ./lib
+          key: shards-${{ runner.os }}-${{ matrix.crystal }}-${{ hashFiles('shard.lock') }}
+          restore-keys: |
+            shards-${{ runner.os }}-${{ matrix.crystal }}-
+            shards-${{ runner.os }}-
+
+      - name: Install shard dependencies
+        run: shards install
+
+      - name: Lint with Ameba (if installed)
+        run: |
+          if shards list | grep -q ameba; then
+            bin/ameba
+          else
+            echo "Ameba not installed; skipping lint."
+          fi
+
+      - name: Run tests
+        run: crystal spec
+
+      - name: Build (debug)
+        run: crystal build src/nl.cr --error-trace
+
+      - name: Build (release)
+        run: crystal build src/nl.cr --release --error-trace
+
+      - name: Build with optional flags (if any)
+        run: crystal build src/nl.cr -D preview --error-trace || true
+
+      - name: Generate API documentation
+        run: crystal docs

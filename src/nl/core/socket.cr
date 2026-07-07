@@ -11,7 +11,9 @@ module Nl
   # sending/receiving messages and managing socket options.
   class Socket
     @ptr : Pointer(LibNL::NL_Sock)
-    getter handle : LibNL::NlSock*
+
+    # Expose the raw pointer so that low‑level libnl functions can be used.
+    getter handle : Pointer(LibNL::NL_Sock)
 
     # Creates a new Netlink socket.
     #

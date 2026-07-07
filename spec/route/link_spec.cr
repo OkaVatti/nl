@@ -41,17 +41,16 @@ describe "LibNLRoute link" do
     LibNLRoute.rtnl_link_put(link)
   end
 
-  it "detects link types (should be 0 for newly allocated link)" do
+  it "detects link kind (should be nil for newly allocated link)" do
     link = LibNLRoute.rtnl_link_alloc
     link.should_not be_nil
-    LibNLRoute.rtnl_link_is_vlan(link).should eq(0)
-    LibNLRoute.rtnl_link_is_bridge(link).should eq(0)
-    LibNLRoute.rtnl_link_is_bond(link).should eq(0)
-    LibNLRoute.rtnl_link_is_vxlan(link).should eq(0)
+
+    kind = LibNLRouteHelpers.link_get_kind(link)
+    kind.should be_nil
+
     LibNLRoute.rtnl_link_put(link)
   end
 
-  # spec/route/link_spec.cr (add at end)
   it "retrieves a link by ifindex from cache" do
     if NLSpecHelpers.can_connect?(LibNL::NETLINK_ROUTE)
       sk = LibNL.nl_socket_alloc

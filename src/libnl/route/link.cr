@@ -87,17 +87,8 @@ lib LibNLRoute
   fun rtnl_link_set_stat = rtnl_link_set_stat(link : Pointer(Rtnl_Link), id : Int32, value : UInt64) : Void
 
   # ---- Link type detection -----------------------------------------------
-
-  fun rtnl_link_is_vlan = rtnl_link_is_vlan(link : Pointer(Rtnl_Link)) : Int32
-  fun rtnl_link_is_bridge = rtnl_link_is_bridge(link : Pointer(Rtnl_Link)) : Int32
-  fun rtnl_link_is_bond = rtnl_link_is_bond(link : Pointer(Rtnl_Link)) : Int32
-  fun rtnl_link_is_vxlan = rtnl_link_is_vxlan(link : Pointer(Rtnl_Link)) : Int32
-  fun rtnl_link_is_macvlan = rtnl_link_is_macvlan(link : Pointer(Rtnl_Link)) : Int32
-  fun rtnl_link_is_veth = rtnl_link_is_veth(link : Pointer(Rtnl_Link)) : Int32
-  fun rtnl_link_is_dummy = rtnl_link_is_dummy(link : Pointer(Rtnl_Link)) : Int32
-  fun rtnl_link_is_can = rtnl_link_is_can(link : Pointer(Rtnl_Link)) : Int32
-  fun rtnl_link_is_sit = rtnl_link_is_sit(link : Pointer(Rtnl_Link)) : Int32
-  fun rtnl_link_is_ip6_tnl = rtnl_link_is_ip6_tnl(link : Pointer(Rtnl_Link)) : Int32
+  # NOTE: rtnl_link_is_* functions are static inline in libnl headers and are
+  # NOT exported. Use LibNLRouteHelpers.link_get_kind instead.
 
   # ======================================================================
   # Link‑Type‑Specific Operations (from various headers)
@@ -319,4 +310,28 @@ lib LibNLRoute
   fun rtnl_link_ip6_tnl_get_tos = rtnl_link_ip6_tnl_get_tos(link : Pointer(Rtnl_Link)) : UInt8
   fun rtnl_link_ip6_tnl_set_link = rtnl_link_ip6_tnl_set_link(link : Pointer(Rtnl_Link), ifindex : Int32) : Int32
   fun rtnl_link_ip6_tnl_get_link = rtnl_link_ip6_tnl_get_link(link : Pointer(Rtnl_Link)) : Int32
+end
+
+# ---- Helper module for inline functions (previously defined in C headers) ----
+
+module LibNLRouteHelpers
+  # IFLA_INFO_KIND from <linux/if_link.h>
+  private IFLA_INFO_KIND = 1
+
+  # Retrieve the kind string of a link (e.g., "vlan", "bridge", "bond").
+  # Returns nil if the link is not a virtual type or if parsing fails.
+  def self.link_get_kind(link : Pointer(LibNLRoute::Rtnl_Link)) : String?
+    # Allocate an array of attribute pointers (maximum index is 64)
+    tb = Pointer(Pointer(LibNL::NL_Attr)).malloc(64)
+    ret = LibNLRoute.rtnl_link_info_parse(link, tb)
+    return nil if ret < 0
+
+    attr = tb[IFLA_INFO_KIND]
+    return nil if attr.null?
+
+    str = LibNL.nla_get_string(attr)
+    return nil if str.null?
+
+    String.new(str)
+  end
 end

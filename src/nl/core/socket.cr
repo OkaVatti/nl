@@ -11,6 +11,7 @@ module Nl
   # sending/receiving messages and managing socket options.
   class Socket
     @ptr : Pointer(LibNL::NL_Sock)
+    getter handle : LibNL::NlSock*
 
     # Creates a new Netlink socket.
     #
